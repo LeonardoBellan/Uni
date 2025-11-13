@@ -3,7 +3,7 @@
 int main(){
   Rational frac1;             //default constructor
   Rational frac2(3);            //Integer constructor
-  Rational frac3(2,-7);         //Fraction constructor
+  Rational frac3(0,-7);         //Fraction constructor
   Rational frac4,frac5,frac6,frac7,frac8;
 
   frac4 = frac1 + frac2;        
@@ -30,7 +30,7 @@ int main(){
   std::cout << "frac1==frac8? " << cmp2 << std::endl;
   std::cout << "frac1>frac2? " << cmp3 << std::endl;
   std::cout << "frac8<frac4? " << cmp4 << std::endl;
-  
+
   try{
     frac1 = frac3/frac1;
   }catch(Rational::Invalid){
