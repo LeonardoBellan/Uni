@@ -1,4 +1,3 @@
-#include <copy>
 #include <stdexcept>
 
 class vector{
