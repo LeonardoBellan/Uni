@@ -53,17 +53,16 @@ class Edge implements Comparable<Edge>{
   }
 
   public String toString(){
-    return p1.toString()+p2.toString()+", w(e):"+weight;
+    return p1.toString()+p2.toString();
   }
 };
 
 public class EMST{
   public static void main(String[] args){
-    if(args.length!=2){
-      System.out.println("Invalid command line arguments: expected...");
+    if(args.length<2){
+      System.err.println("usage: java EMST <input_path> <alfa>");
       return;
     }
-
 
     //Input
     float maxWeight;
@@ -73,8 +72,7 @@ public class EMST{
     try{ 
       maxWeight = Float.parseFloat(args[1]);
     }catch(NumberFormatException e){
-      maxWeight = 0;
-      System.out.println("Invalid command ..");
+      System.err.println(e.getMessage());
       return;
     }
 
@@ -93,13 +91,13 @@ public class EMST{
 
       br.close();
     }catch(FileNotFoundException e){
-      System.out.println("Error: File not found");
+      System.out.println(e.getMessage());
       return;
     }catch(IOException e){
-      e.printStackTrace();
+      System.out.println(e.getMessage());
       return;
     }catch(NumberFormatException e){
-      e.printStackTrace();
+      System.out.println(e.getMessage());
       return;
     }
     
@@ -109,48 +107,45 @@ public class EMST{
     boolean fail = false;
 
     Set<Point> V = new HashSet<>();
-    PriorityQueue<Edge> minEdges = new PriorityQueue<>();
-    Set<Edge> EMST;
-    if(n<=10)
-      EMST = new HashSet<>();
+    PriorityQueue<Edge> minHeap = new PriorityQueue<>();
+    Set<Edge> EMST = new HashSet<>();
 
     Point p1 = D.iterator().next();   //First point in set
     D.remove(p1);
     V.add(p1);
     for(int i=0;i<n-1 && !fail;i++){
-      //Add all new edges to the ordered set
+      //Add all new edges to the queue
       for(Point p2:D){
         Edge e = new Edge(p1,p2);
-        minEdges.add(e);
+        minHeap.add(e);
       }
 
       //Find edge with minimum weight
       Edge minEdge;
       do{
-        minEdge = minEdges.poll();
+        minEdge = minHeap.poll();
       }while(V.contains(minEdge.getP2()));
 
-      E.add(minEdge);
       D.remove(minEdge.getP2());
       V.add(minEdge.getP2());
       p1 = minEdge.getP2();
+      sum+= minEdge.getWeight();
+      EMST.add(minEdge);
 
       if(minEdge.getWeight() > maxWeight)
         fail=true;
     }
 
-    System.out.println("Final EMST:");
-    if(!fail){
-      float sum = 0;
-      for(Edge e:E){
-        sum+=e.getWeight();
-        System.out.println(e.toString());
-      }
-
-      System.out.println("w(E): " + sum);
-    }else{
+    //Output
+    if(fail){
       System.out.println("FAIL");
+      return;
+    }
+
+    System.out.println(Math.round(sum*100.0)/100.0);
+    Iterator iterator = EMST.iterator();
+    while(n<=10 && iterator.hasNext()){
+      System.out.println(iterator.next().toString());
     }
   }
-
 }
