@@ -1,6 +1,10 @@
-import java.util.*;
 import java.lang.*;
 import java.io.*;
+import java.util.*;
+import java.util.Iterator;
+import java.util.Set; 
+import java.util.HashSet;
+import java.util.PriorityQueue;
 
 class Point{
   //Attributes
@@ -27,47 +31,35 @@ class Point{
   }
 };
 
-class Edge implements Comparable<Edge>{
-  //Attributes
-  private Point p1;
-  private Point p2;
-  private double weight;
- 
-  //Constructor
-  public Edge(Point p1, Point p2){
-    this.p1=p1; this.p2=p2;
-    this.weight = p1.distanceFrom(p2);
+class PointDistance implements Comparable<PointDistance>{
+  double distance;
+  Point p;
+
+  public PointDistance(Point p, double distance){
+    this.p = p;
+    this.distance = distance;
   }
 
-  //Methods
-  public Point getP1() { return p1; }
-  public Point getP2() { return p2; }
-  public double getWeight(){
-    return weight;
-  }
-
-  public int compareTo(Edge e){
-    if(this.weight>e.weight) return 1;
-    else if(this.weight<e.weight) return -1;
+  public int compareTo(PointDistance pd){
+    if(this.distance>pd.distance) return 1;
+    if(this.distance<pd.distance) return -1;
     return 0;
   }
-
-  public String toString(){
-    return p1.toString()+p2.toString();
-  }
-};
+}
 
 public class EMST{
   public static void main(String[] args){
+
+    //Guard
     if(args.length<2){
       System.err.println("usage: java EMST <input_path> <alfa>");
       return;
     }
 
-    //Input
-    float maxWeight;
-    Set<Point> D = new HashSet<>();
-    
+    //********* Input *************//
+    float maxWeight;                  //Maximum weight between two edges in EMST
+    Set<Point> D = new HashSet<>();   //Set of Points (x,y)
+
     //Get maxWeight from argument
     try{ 
       maxWeight = Float.parseFloat(args[1]);
@@ -100,52 +92,67 @@ public class EMST{
       System.out.println(e.getMessage());
       return;
     }
+
+    //******** Calculate minimum spanning tree **********//
+    int n = D.size();                       //Number of points
+    double sum = 0;                         //w(E)
+    Set<Point> V = new HashSet<>();         //Visited points
+    PriorityQueue<PointDistance> minHeap = new PriorityQueue<>();   //Pair point distance from EMST
+    Map<Point,Double> distanceMST = new HashMap<>();                //Minimum distance from EMST for each point
+    Map<Point,Point> parent= new HashMap<>();                       //EMST
+
     
-    //Calculate minimum spanning tree
-    int n = D.size();     //Number of iterations
-    float sum = 0;
+    for(Point p:D){
+      distanceMST.put(p,Double.POSITIVE_INFINITY);
+    }
+    Point p1 = D.iterator().next();
+    distanceMST.put(p1,0.0);
+    minHeap.add(new PointDistance(p1,0.0));
+
     boolean fail = false;
+    while(!minHeap.isEmpty() && !fail){
+      //Get closest point to EMST
+      PointDistance current = minHeap.poll();
+      p1 = current.p;
+      if(V.contains(p1)) continue;
+      V.add(p1);
+      sum+= current.distance;
 
-    Set<Point> V = new HashSet<>();
-    PriorityQueue<Edge> minHeap = new PriorityQueue<>();
-    Set<Edge> EMST = new HashSet<>();
-
-    Point p1 = D.iterator().next();   //First point in set
-    D.remove(p1);
-    V.add(p1);
-    for(int i=0;i<n-1 && !fail;i++){
-      //Add all new edges to the queue
-      for(Point p2:D){
-        Edge e = new Edge(p1,p2);
-        minHeap.add(e);
+      if(current.distance > maxWeight){
+        fail = true;
       }
 
-      //Find edge with minimum weight
-      Edge minEdge;
-      do{
-        minEdge = minHeap.poll();
-      }while(V.contains(minEdge.getP2()));
+      //Update distances
+      for(Point p2:D){
+        if(!V.contains(p2)){
+          double w = p1.distanceFrom(p2);
+          //if(w>maxWeight)continue;
 
-      D.remove(minEdge.getP2());
-      V.add(minEdge.getP2());
-      p1 = minEdge.getP2();
-      sum+= minEdge.getWeight();
-      EMST.add(minEdge);
-
-      if(minEdge.getWeight() > maxWeight)
-        fail=true;
+          if(w < distanceMST.get(p2)){
+            distanceMST.put(p2,w);
+            minHeap.add(new PointDistance(p2,w));
+            if(n<=10)
+              parent.put(p2,p1);
+          }
+        }
+      }
     }
 
-    //Output
+    //********** Output **********//
     if(fail){
       System.out.println("FAIL");
       return;
     }
 
     System.out.println(Math.round(sum*100.0)/100.0);
-    Iterator iterator = EMST.iterator();
-    while(n<=10 && iterator.hasNext()){
-      System.out.println(iterator.next().toString());
+
+    if(n<=10){    //Print EMST
+      for(Map.Entry<Point,Point> p:parent.entrySet()){
+        System.out.println(p.getKey().toString()+p.getValue().toString());
+      }
     }
   }
 }
+
+//Time complexity: O(n^2)
+//Space complexity: O(n)
