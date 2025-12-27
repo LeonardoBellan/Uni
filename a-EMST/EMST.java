@@ -1,6 +1,6 @@
-import java.util.*;
 import java.lang.*;
 import java.io.*;
+import java.util.*;
 
 class Point{
   //Attributes
@@ -18,8 +18,17 @@ class Point{
     return "("+x+","+y+")";
   }
 
-  public boolean equals(Point p){
+  @Override
+  public boolean equals(Object o){
+    if(this == o) return true;
+    if(!(o instanceof Point)) return false;
+    Point p = (Point) o;
     return this.x == p.x && this.y == p.y;
+  }
+
+  @Override
+  public int hashCode(){
+    return java.util.Objects.hash(x,y);
   }
 
   public double distanceFrom(Point p){
@@ -27,56 +36,88 @@ class Point{
   }
 };
 
-class Edge implements Comparable<Edge>{
-  //Attributes
-  private Point p1;
-  private Point p2;
-  private double weight;
- 
-  //Constructor
-  public Edge(Point p1, Point p2){
-    this.p1=p1; this.p2=p2;
-    this.weight = p1.distanceFrom(p2);
+class BucketKey{
+  private int x;
+  private int y;
+
+  public BucketKey(double x,double y,double maxWeight) {
+    this.x = (int) Math.round(x/maxWeight);
+    this.y = (int) Math.round(y/maxWeight);
   }
 
-  //Methods
-  public Point getP1() { return p1; }
-  public Point getP2() { return p2; }
-  public double getWeight(){
-    return weight;
+  public BucketKey(Point p, double maxWeight){
+    this.x = (int) Math.floor(p.getX()/maxWeight);
+    this.y = (int) Math.floor(p.getY()/maxWeight);
   }
 
-  public int compareTo(Edge e){
-    if(this.weight>e.weight) return 1;
-    else if(this.weight<e.weight) return -1;
+  @Override
+  public boolean equals(Object o){
+    if(this == o) return true;
+    if(!(o instanceof BucketKey)) return false;
+    BucketKey k = (BucketKey) o;
+    return this.x == k.x && this.y == k.y;
+  }
+
+  @Override
+  public int hashCode(){
+    return java.util.Objects.hash(x,y);
+  }
+  public String toString(){
+    return "("+x+","+y+")";
+  }
+}
+
+class PointDistance implements Comparable<PointDistance>{
+  double distance;
+  Point p;
+
+  public PointDistance(Point p, double distance){
+    this.p = p;
+    this.distance = distance;
+  }
+
+  public int compareTo(PointDistance pd){
+    if(this.distance>pd.distance) return 1;
+    if(this.distance<pd.distance) return -1;
     return 0;
   }
-
-  public String toString(){
-    return p1.toString()+p2.toString();
-  }
-};
+}
 
 public class EMST{
+
+  public double calculate_aEMST(Set<Double> D, double maxWeight, Map<Point,Point> EMST){
+    
+  }
+
   public static void main(String[] args){
+
+    //Guard
     if(args.length<2){
       System.err.println("usage: java EMST <input_path> <alfa>");
       return;
     }
 
-    //Input
-    float maxWeight;
-    Set<Point> D = new HashSet<>();
-    
+    //********* Input *************//
+    double maxWeight;                  //Maximum weight between two edges in EMST
+    //Set<Point> D = new HashSet<>();   //Set of Points (x,y)
+                                      //
+    Map<BucketKey,HashSet<Point>> D = new HashMap<>(); //Map containing buckets of size alpha*alpha
+                                                      //Each bucket (I1,I2) represents a square in the grid [I1*alpha,I2*alpha]x[(I1+1)*alpha,(I2+1)*alpha] 
+    double sum = 0;                         //w(E)
+    Set<Point> V = new HashSet<>();         //Visited points
+    PriorityQueue<PointDistance> minHeap = new PriorityQueue<>();   //Pair point distance from EMST
+    Map<Point,Double> distanceMST = new HashMap<>();                //Minimum distance from EMST for each point
+    Map<Point,Point> parent= new HashMap<>();                       //EMST
+
     //Get maxWeight from argument
     try{ 
-      maxWeight = Float.parseFloat(args[1]);
+      maxWeight = Double.parseDouble(args[1]);
     }catch(NumberFormatException e){
       System.err.println(e.getMessage());
       return;
     }
 
-    //Get points in file from argument
+    //Get points in file from argument and put them in the corresponding bucket
     try{
       String path = args[0];
       BufferedReader br = new BufferedReader(new FileReader(path));
@@ -86,7 +127,11 @@ public class EMST{
         line = line.replace("(","").replace(")","").trim();
         String[] coord = line.split(",",2);
         Point p = new Point(Integer.parseInt(coord[0]),Integer.parseInt(coord[1]));
-        D.add(p);
+        //Add point in corresponding bucket
+        BucketKey key = new BucketKey(p,maxWeight);
+        D.putIfAbsent(key,new HashSet<Point>());
+        D.get(key).add(p);
+        distanceMST.put(p,Double.POSITIVE_INFINITY);
       }
 
       br.close();
@@ -100,52 +145,74 @@ public class EMST{
       System.out.println(e.getMessage());
       return;
     }
-    
-    //Calculate minimum spanning tree
-    int n = D.size();     //Number of iterations
-    float sum = 0;
+
+    //******** Calculate minimum spanning tree **********//
+    int n = D.size();                       //Number of points
+    Point p1 = D.values().iterator().next().iterator().next();
+    System.out.println(p1);
+    distanceMST.put(p1,0.0);
+    minHeap.add(new PointDistance(p1,0.0));
+
     boolean fail = false;
+    while(!minHeap.isEmpty() && !fail){
+      //Get closest point to EMST
+      PointDistance current = minHeap.poll();
+      p1 = current.p;
+      if(V.contains(p1)) continue;
+      V.add(p1);
+      sum+= current.distance;
 
-    Set<Point> V = new HashSet<>();
-    PriorityQueue<Edge> minHeap = new PriorityQueue<>();
-    Set<Edge> EMST = new HashSet<>();
-
-    Point p1 = D.iterator().next();   //First point in set
-    D.remove(p1);
-    V.add(p1);
-    for(int i=0;i<n-1 && !fail;i++){
-      //Add all new edges to the queue
-      for(Point p2:D){
-        Edge e = new Edge(p1,p2);
-        minHeap.add(e);
+      if(current.distance > maxWeight){
+        fail = true;
       }
 
-      //Find edge with minimum weight
-      Edge minEdge;
-      do{
-        minEdge = minHeap.poll();
-      }while(V.contains(minEdge.getP2()));
+     // System.out.println(p1 + " " + current.distance);
 
-      D.remove(minEdge.getP2());
-      V.add(minEdge.getP2());
-      p1 = minEdge.getP2();
-      sum+= minEdge.getWeight();
-      EMST.add(minEdge);
+      //Update distances
+      for(int i=-2;i<=2;i++){
+        for(int j=-2;j<=2;j++){
+          double keyX = p1.getX()+i*maxWeight;
+          double keyY = p1.getY()+j*maxWeight;
 
-      if(minEdge.getWeight() > maxWeight)
-        fail=true;
+          BucketKey key = new BucketKey(keyX,keyY,maxWeight);
+          for(Point p2:D.getOrDefault(key,new HashSet<Point>())){
+            if(!V.contains(p2)){
+                double w = p1.distanceFrom(p2);
+                //if(w>maxWeight)continue;
+
+              if(w < distanceMST.get(p2)){
+                distanceMST.put(p2,w);
+                minHeap.add(new PointDistance(p2,w));
+                if(n<=10)
+                  parent.put(p2,p1);
+              }
+            }
+          }
+        }
+      }
     }
 
-    //Output
+    //********** Output **********//
     if(fail){
       System.out.println("FAIL");
       return;
     }
 
     System.out.println(Math.round(sum*100.0)/100.0);
-    Iterator iterator = EMST.iterator();
-    while(n<=10 && iterator.hasNext()){
-      System.out.println(iterator.next().toString());
+
+    double sum2 = 0;
+    for(double d:distanceMST.values()){
+      sum2+=d;
     }
+    System.out.println(sum2);
+    /*
+    if(n<=10){    //Print EMST
+      for(Map.Entry<Point,Point> p:parent.entrySet()){
+        System.out.println(p.getKey().toString()+p.getValue().toString());
+      }
+    }*/
   }
 }
+
+//Time complexity: O(nlogn)
+//Space complexity: O(n)
