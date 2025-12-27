@@ -1,10 +1,6 @@
 import java.lang.*;
 import java.io.*;
 import java.util.*;
-import java.util.Iterator;
-import java.util.Set; 
-import java.util.HashSet;
-import java.util.PriorityQueue;
 
 class Point{
   //Attributes
@@ -88,6 +84,11 @@ class PointDistance implements Comparable<PointDistance>{
 }
 
 public class EMST{
+
+  public double calculate_aEMST(Set<Double> D, double maxWeight, Map<Point,Point> EMST){
+    
+  }
+
   public static void main(String[] args){
 
     //Guard
