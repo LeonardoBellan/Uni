@@ -1,3 +1,6 @@
-[submodule "InertialDriver"]
-	path = InertialDriver
+[submodule "fdi/TutorAutostradale"]
+	path = fdi/TutorAutostradale
+	url = https://github.com/LeonardoBellan/TutorAutostradale
+[submodule "fdi/InertialDriver"]
+	path = fdi/InertialDriver
 	url = https://github.com/LeonardoBellan/InertialDriver
