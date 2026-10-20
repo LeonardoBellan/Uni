@@ -88,7 +88,7 @@ public class EMST{
   public static double calculate_aEMST(Set<Point> D, double maxWeight, Map<Point,Point> EMST){
     double sum = 0;                         //w(E)
     Map<BucketKey,HashSet<Point>> grid = new HashMap<>(); //Map containing buckets of size alpha*alpha
-    Set<Point> V = new HashSet<>();         //Visited points
+    Set<Point> V = new HashSet<>();                       //Visited points
     PriorityQueue<PointDistance> minHeap = new PriorityQueue<>();   //Pair point distance from EMST
     Map<Point,Double> distanceMST = new HashMap<>();                //Minimum distance from EMST for each point
 
